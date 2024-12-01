@@ -1,0 +1,22 @@
+{
+  "name": "pflow-js",
+  "version": "0.1.0",
+  "description": "pflow state machine in js",
+  "main": "index.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "run": "node ./src/main.js",
+    "test": "mocha"
+  },
+  "repository": {
+    "type": "git",
+    "url": "github.com/stackdump/pflow-polyglot"
+  },
+  "author": "stackdump",
+  "license": "MIT",
+  "devDependencies": {
+    "mocha": "^10.8.2"
+  }
+}
