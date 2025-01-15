@@ -1,6 +1,6 @@
-.PHONY: all run-rust run-bash run-python run-js run-ruby
+.PHONY: all run-rust run-bash run-python run-js run-ruby run-julia
 
-all: run-rust run-bash run-python run-js run-ruby
+all: run-rust run-bash run-python run-js run-ruby run-julia
 
 run-rust:
 	@echo ---
@@ -26,3 +26,8 @@ run-ruby:
 	@echo ---
 	@echo "Running Ruby implementation..."
 	ruby ruby/main.rb
+
+run-julia:
+	@echo ---
+	@echo "Running Julia implementation..."
+	julia julia/main.jl
