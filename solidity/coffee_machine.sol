@@ -35,6 +35,7 @@ contract CoffeeWorkflow {
 
     // Helper to set states
     function setState(string memory state, bool value) private {
+        require(states[state] != value, "State already set");
         states[state] = value;
     }
 
@@ -62,7 +63,7 @@ contract CoffeeWorkflow {
     }
 
     // Transition: Pour Coffee
-    function pourCoffee() external stateIsTrue("CoffeeInPot") stateIsTrue("Cup") {
+    function pourCoffee() external stateIsTrue("Payment") stateIsTrue("CoffeeInPot") stateIsTrue("Cup") {
         setState("CoffeeInPot", false);
         setState("Cup", false);
         emit PourCoffeeEvent();
