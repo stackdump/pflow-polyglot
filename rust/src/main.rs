@@ -1,3 +1,5 @@
+mod lambda_expression;
+
 use std::collections::HashSet;
 use strum::IntoEnumIterator;
 use strum_macros::EnumIter;
