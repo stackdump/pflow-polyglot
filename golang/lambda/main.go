@@ -20,78 +20,57 @@ const (
 	Cup          State = "Cup"
 )
 
-// CoffeeMachineState is a slice of States
-type CoffeeMachineState []State
-
-// Helper Function to Check if a State Exists in the Current State
-func contains(state CoffeeMachineState, target State) bool {
-	for _, s := range state {
-		if s == target {
-			return true
-		}
-	}
-	return false
-}
-
-// Helper Function to Remove a State from the Current State
-func remove(state CoffeeMachineState, target State) CoffeeMachineState {
-	newState := make(CoffeeMachineState, 0)
-	for _, s := range state {
-		if s != target {
-			newState = append(newState, s)
-		}
-	}
-	return newState
-}
+// CoffeeMachineState is a map of States to bool
+type CoffeeMachineState map[State]bool
 
 // Transition Functions
 func boilWater(state CoffeeMachineState) CoffeeMachineState {
-	if contains(state, Water) && !contains(state, BoiledWater) {
-		state = remove(state, Water)
-		state = append(state, BoiledWater)
+	if state[Water] && !state[BoiledWater] {
+		state[Water] = false
+		state[BoiledWater] = true
 	}
 	return state
 }
 
 func grindBeans(state CoffeeMachineState) CoffeeMachineState {
-	if contains(state, CoffeeBeans) && !contains(state, GroundCoffee) {
-		state = remove(state, CoffeeBeans)
-		state = append(state, GroundCoffee)
+	if state[CoffeeBeans] && !state[GroundCoffee] {
+		state[CoffeeBeans] = false
+		state[GroundCoffee] = true
 	}
 	return state
 }
 
 func brewCoffee(state CoffeeMachineState) CoffeeMachineState {
-	if contains(state, BoiledWater) && contains(state, GroundCoffee) && contains(state, Filter) && !contains(state, CoffeeInPot) {
-		state = remove(state, BoiledWater)
-		state = remove(state, GroundCoffee)
-		state = remove(state, Filter)
-		state = append(state, CoffeeInPot)
+	if state[BoiledWater] && state[GroundCoffee] && state[Filter] && !state[CoffeeInPot] {
+		state[BoiledWater] = false
+		state[GroundCoffee] = false
+		state[Filter] = false
+		state[CoffeeInPot] = true
 	}
 	return state
 }
 
 func pourCoffee(state CoffeeMachineState) CoffeeMachineState {
-	if contains(state, CoffeeInPot) && contains(state, Cup) {
-		state = remove(state, CoffeeInPot)
-		state = remove(state, Cup)
-		state = append(state, Pending)
+	if state[CoffeeInPot] && state[Cup] {
+		state[CoffeeInPot] = false
+		state[Cup] = false
+		state[Pending] = true
 	}
 	return state
 }
 
 func send(state CoffeeMachineState) CoffeeMachineState {
-	if contains(state, Pending) {
-		state = remove(state, Pending)
-		state = append(state, Sent)
+	if state[Pending] {
+		state[Pending] = false
+		state[Sent] = true
 	}
 	return state
 }
 
 func credit(state CoffeeMachineState) CoffeeMachineState {
-	if contains(state, Sent) {
-		state = remove(state, Sent)
-		state = append(state, Payment)
+	if state[Sent] {
+		state[Sent] = false
+		state[Payment] = true
 	}
 	return state
 }
@@ -99,7 +78,16 @@ func credit(state CoffeeMachineState) CoffeeMachineState {
 // Define the Initial State
 func initialState() CoffeeMachineState {
 	return CoffeeMachineState{
-		Water, CoffeeBeans, Filter, Cup, Pending,
+		Water:        true,
+		CoffeeBeans:  true,
+		Filter:       true,
+		Cup:          true,
+		Pending:      true,
+		BoiledWater:  false,
+		GroundCoffee: false,
+		CoffeeInPot:  false,
+		Sent:         false,
+		Payment:      false,
 	}
 }
 
