@@ -22,12 +22,12 @@ const (
 {{- end }}
 )
 
-type StateVector map[State]int64
+type StateVector map[State]bool
 
 func initialState() StateVector {
 	return StateVector{
 {{- range $name, $place := .places }}
-		{{$name}}: {{ if $place.initial }}1{{ else }}0{{ end }},
+		{{$name}}: {{ if $place.initial }}true{{ else }}false{{ end }},
 {{- end }}
 	}
 }
@@ -37,34 +37,34 @@ func {{$tname}}(state StateVector) (StateVector, bool) {
 {{- range $arc := $.arcs }}
 	{{- if eq $arc.source $tname }}
         {{- if eq $arc.inhibit true }}
-	if state[{{$arc.target}}] <= 0 {
-		return state, false
-	}
+		if !state[{{$arc.target}}] {
+			return state, false
+		}
         {{- else }}
-	if state[{{$arc.target}}] > 0 {
-		return state, false
-	}
+		if state[{{$arc.target}}] {
+			return state, false
+		}
         {{- end }}
 
 	{{- end }}
 	{{- if eq $arc.target $tname }}
         {{- if eq $arc.inhibit true }}
-	if state[{{$arc.source}}] > 0 {
-		return state, false
-	}
+		if state[{{$arc.source}}] {
+			return state, false
+		}
         {{- else }}
-	if state[{{$arc.source}}] <= 0 {
-		return state, false
-	}
+		if !state[{{$arc.source}}] {
+			return state, false
+		}
         {{- end }}
 	{{- end }}
 {{- end }}
 {{- range $arc := $.arcs }}
 	{{- if eq $arc.source $tname }}
-	state[{{$arc.target}}] += 1
+		state[{{$arc.target}}] = true
 	{{- end }}
 	{{- if eq $arc.target $tname }}
-	state[{{$arc.source}}] -= 1
+		state[{{$arc.source}}] = false
 	{{- end }}
 {{- end }}
 	return state, true
@@ -81,6 +81,7 @@ func executeProcess(state StateVector, transitions map[string]func(StateVector) 
 			out, ok := transition(state)
 			if ok {
                 i++
+             
 				fmt.Printf("%v: %s\n", i, action)
                 state = out
 				ranOne = true
