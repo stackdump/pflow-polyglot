@@ -27,4 +27,10 @@ nodejs_binary(
     visibility = ["//visibility:public"],
 )
 
+nodejs_binary(
+    name = "proof",
+    entry_point = "src/proof.js",
+    visibility = ["//visibility:public"],
+)
+
 exports_files(["src/generated.js"])

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Parity check for the implementations Bazel does not cover: ruby, julia,
-# haskell and bash (FORMS.md). These need a system toolchain rather than a
-# hermetic one, so this runs outside `bazel test` — `make parity-native`.
+# haskell, bash and lean (FORMS.md). These need a system toolchain rather than
+# a hermetic one, so this runs outside `bazel test` — `make parity-native`.
 #
 # A missing toolchain SKIPs rather than fails, so this is usable on a box that
 # has only some of them. It reports the skips loudly: a run where everything
@@ -56,6 +56,7 @@ run() {
 run bash-interpreter bash bash "$root/bash/interpreter.sh"
 run bash-lambda bash bash "$root/bash/lambda.sh"
 run bash-contract bash bash "$root/bash/contract.sh"
+run bash-proof bash bash "$root/bash/proof.sh"
 
 run ruby-interpreter ruby ruby "$root/ruby/interpreter.rb"
 run ruby-lambda ruby ruby "$root/ruby/lambda.rb"
@@ -69,6 +70,14 @@ run julia-contract julia julia "$root/julia/contract.jl"
 run haskell-interpreter runghc runghc "$root/haskell/interpreter.hs"
 run haskell-lambda runghc runghc "$root/haskell/lambda.hs"
 run haskell-contract runghc runghc "$root/haskell/contract.hs"
+
+# `lean --run` elaborates and runs `main` in one step. Note that elan puts lean
+# on the PATH via ~/.profile, so a non-login shell may SKIP these even on a box
+# where Lean is installed.
+run lean-interpreter lean lean --run "$root/lean/interpreter.lean"
+run lean-lambda lean lean --run "$root/lean/lambda.lean"
+run lean-contract lean lean --run "$root/lean/contract.lean"
+run lean-proof lean lean --run "$root/lean/proof.lean"
 
 if [[ ${#skipped[@]} -gt 0 ]]; then
   echo

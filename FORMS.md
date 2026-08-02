@@ -1,10 +1,10 @@
-# The four forms
+# The five forms
 
 Every implementation in this repo models the same coffee-machine Petri net
 ([`model.json`](model.json)), and every one emits the byte-identical canonical
 trace in [`parity/trace.golden`](parity/trace.golden).
 
-What differs is *how the model is encoded in the host language*. Four forms
+What differs is *how the model is encoded in the host language*. Five forms
 recur across languages, and each says something different about the model:
 
 | Form | The net is… | Firing order comes from… | Guards live in… |
@@ -13,11 +13,12 @@ recur across languages, and each says something different about the model:
 | **lambda** | a set of pure `State → State` functions | a fixed composition order chosen by the author | each transition's own precondition |
 | **generated** | a build-time input (`model.json`) | a generated scheduler, transitions in sorted order | unrolled into the generated preconditions |
 | **contract** | a public API surface | the *caller* | the entry point, which refuses to fire |
+| **proof** | a claim about *every* reachable marking | the interpreter's search order, run only after the claim is checked | the enablement relation the model-check explores |
 
 The forms are a matrix against languages; see the coverage table in
 [README.md](README.md#the-form--language-matrix).
 
-## Why one golden trace for all four
+## Why one golden trace for all five
 
 A form is an implementation strategy, not a different machine. If the lambda
 form in Ruby and the generated form in Rust both print
@@ -77,7 +78,9 @@ or insertion-dependent iteration order.
 (`BoiledWater`, `PourCoffee`) in output, regardless of the identifier
 convention the language uses internally. Python's enum members stay
 `UPPER_SNAKE` and carry the canonical name as their value; Rust derives it from
-`Debug`; Julia and Bash map their `UPPER_SNAKE` enums through a name table.
+`Debug`; Julia and Bash map their `UPPER_SNAKE` enums through a name table;
+Lean writes the table out by hand rather than deriving it, because `Repr` output
+is a rendering decision and the trace is a contract.
 
 ## Form details
 
@@ -157,3 +160,38 @@ This is the form Solidity forces on you — [`solidity/contract.sol`](solidity/c
 enforces enablement with `require` in modifiers and emits one event per firing,
 so the event log *is* the trace. The other languages implement the same shape
 so the comparison is visible.
+
+### proof
+
+The other four forms *assert* the net's properties; this one checks them
+before printing a line. The marking is a multiset — a count per place, not a
+set — and enablement is plain P/T semantics: every input and guard place holds
+a token. Deliberately absent is the `capacity: 1` clause the other forms carry.
+The form then explores the full reachable state space by breadth-first search
+and verifies two claims:
+
+1. **1-safety is structural.** No reachable marking holds two tokens in any
+   place, *even without the capacity clause*. This is what licenses every other
+   implementation's set representation: the clause they enforce is never
+   load-bearing, and a `Set` loses nothing a multiset would keep.
+2. **The outcome is confluent.** The net has no conflict — no two transitions
+   compete for a token — so every maximal firing sequence ends in the same
+   deadlock, and it is exactly `{Payment}`. The golden trace's final marking is
+   not one schedule's artifact; it is the only place the net can stop.
+
+Only after both checks pass does the form run the interpreter's scheduler and
+print the canonical trace. A violation aborts with a nonzero exit and the
+offending marking on stderr — which fails the parity gate, since a program that
+dies before printing six lines cannot match the golden.
+
+The search needs no bound to terminate: a state that violates 1-safety fails
+check 1 immediately, so the explored space is a subset of `{0,1}^10` and BFS
+runs out of frontier after at most 1024 markings. This net reaches 16.
+
+What varies by language is *when* the check runs. Go, Rust, Python, JavaScript
+and Bash model-check at startup, every run. Lean states both claims as
+`theorem`s discharged by `decide`: the kernel evaluates the BFS during
+elaboration, and an unsafe model is a *compile error* — `main` cannot exist
+unless the claims hold. That is the whole pitch of the form: the same
+executable specification, but the trace is printed by a program that has
+already been refused permission to be wrong.

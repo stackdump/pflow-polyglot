@@ -45,4 +45,11 @@ py_binary(
     visibility = ["//visibility:public"],
 )
 
+py_binary(
+    name = "proof",
+    srcs = ["proof.py"],
+    main = "proof.py",
+    visibility = ["//visibility:public"],
+)
+
 exports_files(["generated.py"])

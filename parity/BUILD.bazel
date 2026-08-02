@@ -1,7 +1,7 @@
 # The point of the Bazel port: one `bazel test //...` that fails if any
 # implementation's execution trace drifts from the others.
 #
-# The grid is 4 forms x 4 languages (FORMS.md). Every one of these 16 programs
+# The grid is 5 forms x 4 languages (FORMS.md). Every one of these 20 programs
 # is an independent encoding of the same Petri net, run under a hermetic
 # toolchain (Go SDK 1.26.0, Rust 1.86.0, Node 22.14.0, CPython 3.12), and every
 # one must emit the byte-identical canonical trace.
@@ -14,18 +14,22 @@ IMPLEMENTATIONS = {
     "go-lambda": "//golang/lambda",
     "go-contract": "//golang/contract",
     "go-generated": "//golang/generated",
+    "go-proof": "//golang/proof",
     "rust-interpreter": "//rust:interpreter",
     "rust-lambda": "//rust:lambda",
     "rust-contract": "//rust:contract",
     "rust-generated": "//rust:generated",
+    "rust-proof": "//rust:proof",
     "python-interpreter": "//python:interpreter",
     "python-lambda": "//python:lambda",
     "python-contract": "//python:contract",
     "python-generated": "//python:generated",
+    "python-proof": "//python:proof",
     "js-interpreter": "//javascript:interpreter",
     "js-lambda": "//javascript:lambda",
     "js-contract": "//javascript:contract",
     "js-generated": "//javascript:generated",
+    "js-proof": "//javascript:proof",
 }
 
 sh_test(
