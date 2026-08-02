@@ -1,7 +1,7 @@
-# python/test/main_test.py
+# python/test/main_test.py — tests the interpreter form
 
 import unittest
-from main import CoffeeMachine, State, Action
+from interpreter import CoffeeMachine, State, Action
 
 class TestCoffeeMachine(unittest.TestCase):
 

@@ -1,0 +1,3 @@
+# The Go implementations live one directory down, one per form, because Go
+# cannot hold four `package main` programs in a single directory. See FORMS.md.
+# gazelle:prefix github.com/stackdump/pflow-polyglot/golang

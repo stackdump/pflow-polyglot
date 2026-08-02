@@ -1,0 +1,48 @@
+load("@rules_python//python:defs.bzl", "py_binary", "py_library", "py_test")
+
+# One binary per form (FORMS.md).
+
+py_library(
+    name = "interpreter_lib",
+    srcs = ["interpreter.py"],
+    imports = ["."],
+    visibility = ["//visibility:private"],
+)
+
+py_binary(
+    name = "interpreter",
+    srcs = ["interpreter.py"],
+    main = "interpreter.py",
+    visibility = ["//visibility:public"],
+)
+
+py_test(
+    name = "interpreter_test",
+    size = "small",
+    srcs = ["test/main_test.py"],
+    main = "test/main_test.py",
+    deps = [":interpreter_lib"],
+)
+
+py_binary(
+    name = "lambda",
+    srcs = ["lambda_form.py"],
+    main = "lambda_form.py",
+    visibility = ["//visibility:public"],
+)
+
+py_binary(
+    name = "contract",
+    srcs = ["contract.py"],
+    main = "contract.py",
+    visibility = ["//visibility:public"],
+)
+
+py_binary(
+    name = "generated",
+    srcs = ["generated.py"],
+    main = "generated.py",
+    visibility = ["//visibility:public"],
+)
+
+exports_files(["generated.py"])

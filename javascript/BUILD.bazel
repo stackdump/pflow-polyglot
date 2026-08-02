@@ -1,0 +1,30 @@
+load("//tools:nodejs.bzl", "nodejs_binary")
+
+# One binary per form (FORMS.md). Each entry script is self-contained and runs
+# itself under `require.main === module`, so no separate runner is needed.
+
+nodejs_binary(
+    name = "interpreter",
+    entry_point = "src/interpreter.js",
+    visibility = ["//visibility:public"],
+)
+
+nodejs_binary(
+    name = "lambda",
+    entry_point = "src/lambda.js",
+    visibility = ["//visibility:public"],
+)
+
+nodejs_binary(
+    name = "contract",
+    entry_point = "src/contract.js",
+    visibility = ["//visibility:public"],
+)
+
+nodejs_binary(
+    name = "generated",
+    entry_point = "src/generated.js",
+    visibility = ["//visibility:public"],
+)
+
+exports_files(["src/generated.js"])

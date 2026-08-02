@@ -1,0 +1,40 @@
+# The point of the Bazel port: one `bazel test //...` that fails if any
+# implementation's execution trace drifts from the others.
+#
+# The grid is 4 forms x 4 languages (FORMS.md). Every one of these 16 programs
+# is an independent encoding of the same Petri net, run under a hermetic
+# toolchain (Go SDK 1.26.0, Rust 1.86.0, Node 22.14.0, CPython 3.12), and every
+# one must emit the byte-identical canonical trace.
+#
+# Languages outside the Bazel graph (ruby, julia, haskell, bash, solidity) are
+# NOT covered by this gate — see README.md for what does cover them.
+
+IMPLEMENTATIONS = {
+    "go-interpreter": "//golang/interpreter",
+    "go-lambda": "//golang/lambda",
+    "go-contract": "//golang/contract",
+    "go-generated": "//golang/generated",
+    "rust-interpreter": "//rust:interpreter",
+    "rust-lambda": "//rust:lambda",
+    "rust-contract": "//rust:contract",
+    "rust-generated": "//rust:generated",
+    "python-interpreter": "//python:interpreter",
+    "python-lambda": "//python:lambda",
+    "python-contract": "//python:contract",
+    "python-generated": "//python:generated",
+    "js-interpreter": "//javascript:interpreter",
+    "js-lambda": "//javascript:lambda",
+    "js-contract": "//javascript:contract",
+    "js-generated": "//javascript:generated",
+}
+
+sh_test(
+    name = "cross_language_parity_test",
+    size = "small",
+    srcs = ["check_parity.sh"],
+    args = ["$(rootpath trace.golden)"] + [
+        "{}=$(rootpath {})".format(label, target)
+        for label, target in sorted(IMPLEMENTATIONS.items())
+    ],
+    data = ["trace.golden"] + sorted(IMPLEMENTATIONS.values()),
+)

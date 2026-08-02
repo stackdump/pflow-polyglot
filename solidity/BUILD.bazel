@@ -1,0 +1,7 @@
+# Solidity is outside the parity gate — there is no hermetic solc toolchain
+# here and a contract has no stdout. The generated contract is still exported
+# so //tools/codegen:codegen_up_to_date_test can detect model drift in it.
+exports_files([
+    "contract.sol",
+    "generated.sol",
+])

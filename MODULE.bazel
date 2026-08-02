@@ -1,0 +1,70 @@
+"""pflow-polyglot: pure-Bazel (Bzlmod) cross-language build.
+
+The same coffee-machine Petri net implemented in many languages. Bazel's job
+here is narrow and specific: run every in-graph implementation under a hermetic
+toolchain and prove they emit a byte-identical execution trace
+(`//parity:cross_language_parity_test`). That is go-pflow ROADMAP Phase 3
+("cross-language graph") in its smallest honest form.
+
+In the graph: Go, Rust, JavaScript, Python.
+Not in the graph: bash / ruby / julia / haskell / solidity — no hermetic
+toolchain worth the cost yet. They stay on the Makefile and are NOT covered by
+the parity gate. See README.md.
+
+Pins match the ecosystem-wide line (rules_go 0.61.1 / gazelle 0.51.3 / Go SDK
+1.26.0) so compiled actions share remote-cache keys with go-pflow, bitwrap-io,
+beats-bitwrap-io and petri-pilot.
+"""
+
+module(
+    name = "pflow_polyglot",
+    version = "0.0.0",
+)
+
+# --- Go ---------------------------------------------------------------------
+bazel_dep(name = "rules_go", version = "0.61.1", repo_name = "io_bazel_rules_go")
+bazel_dep(name = "gazelle", version = "0.51.3", repo_name = "bazel_gazelle")
+
+go_sdk = use_extension("@io_bazel_rules_go//go:extensions.bzl", "go_sdk")
+go_sdk.download(version = "1.26.0")
+go_sdk.nogo(nogo = "//:nogo")
+
+# --- Rust -------------------------------------------------------------------
+bazel_dep(name = "rules_rust", version = "0.63.0")
+
+rust = use_extension("@rules_rust//rust:extensions.bzl", "rust")
+rust.toolchain(
+    edition = "2021",
+    versions = ["1.86.0"],
+)
+use_repo(rust, "rust_toolchains")
+
+register_toolchains("@rust_toolchains//:all")
+
+# Third-party crates (strum + strum_macros) resolved from rust/Cargo.lock, so
+# Cargo stays the dependency source of truth exactly as go.mod does for Go.
+crate = use_extension("@rules_rust//crate_universe:extensions.bzl", "crate")
+crate.from_cargo(
+    name = "crates",
+    cargo_lockfile = "//rust:Cargo.lock",
+    manifests = ["//rust:Cargo.toml"],
+)
+use_repo(crate, "crates")
+
+# --- Python -----------------------------------------------------------------
+bazel_dep(name = "rules_python", version = "1.4.1")
+
+python = use_extension("@rules_python//python/extensions:python.bzl", "python")
+python.toolchain(
+    ignore_root_user_error = True,
+    is_default = True,
+    python_version = "3.12",
+)
+
+# --- JavaScript -------------------------------------------------------------
+# Hermetic Node.js only — the implementations are dependency-free CommonJS, so
+# there is no npm/lockfile story to model (the mocha suite stays outside Bazel).
+bazel_dep(name = "rules_nodejs", version = "6.7.4")
+
+node = use_extension("@rules_nodejs//nodejs:extensions.bzl", "node")
+node.toolchain(node_version = "22.14.0")

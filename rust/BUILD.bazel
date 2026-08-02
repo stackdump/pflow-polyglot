@@ -1,0 +1,47 @@
+load("@rules_rust//rust:defs.bzl", "rust_binary", "rust_test")
+
+exports_files([
+    "Cargo.toml",
+    "Cargo.lock",
+])
+
+# One binary per form (FORMS.md). Cargo picks these up as src/bin/*.rs; Bazel
+# needs them spelled out.
+
+rust_binary(
+    name = "interpreter",
+    srcs = ["src/bin/interpreter.rs"],
+    edition = "2021",
+    proc_macro_deps = ["@crates//:strum_macros"],
+    visibility = ["//visibility:public"],
+    deps = ["@crates//:strum"],
+)
+
+rust_test(
+    name = "interpreter_test",
+    size = "small",
+    crate = ":interpreter",
+)
+
+rust_binary(
+    name = "lambda",
+    srcs = ["src/bin/lambda.rs"],
+    edition = "2021",
+    visibility = ["//visibility:public"],
+)
+
+rust_binary(
+    name = "contract",
+    srcs = ["src/bin/contract.rs"],
+    edition = "2021",
+    visibility = ["//visibility:public"],
+)
+
+rust_binary(
+    name = "generated",
+    srcs = ["src/bin/generated.rs"],
+    edition = "2021",
+    visibility = ["//visibility:public"],
+)
+
+exports_files(["src/bin/generated.rs"])

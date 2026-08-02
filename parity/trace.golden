@@ -1,0 +1,6 @@
+Step #1: BoilWater => BoiledWater,CoffeeBeans,Cup,Filter,Pending
+Step #2: GrindBeans => BoiledWater,Cup,Filter,GroundCoffee,Pending
+Step #3: BrewCoffee => CoffeeInPot,Cup,Pending
+Step #4: Send => CoffeeInPot,Cup,Sent
+Step #5: Credit => CoffeeInPot,Cup,Payment
+Step #6: PourCoffee => Payment

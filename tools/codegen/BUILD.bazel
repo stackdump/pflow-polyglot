@@ -1,0 +1,50 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
+
+# gazelle:prefix github.com/stackdump/pflow-polyglot/tools/codegen
+
+go_library(
+    name = "codegen_lib",
+    srcs = ["main.go"],
+    embedsrcs = [
+        "templates/go.tmpl",
+        "templates/js.tmpl",
+        "templates/python.tmpl",
+        "templates/rust.tmpl",
+        "templates/solidity.tmpl",
+    ],
+    importpath = "github.com/stackdump/pflow-polyglot/tools/codegen",
+    visibility = ["//visibility:private"],
+)
+
+go_binary(
+    name = "codegen",
+    embed = [":codegen_lib"],
+    visibility = ["//visibility:public"],
+)
+
+# Regenerates every target from model.json and fails if the checked-in output
+# has drifted. Solidity is included even though it is outside the parity gate —
+# drift is detectable there even when the trace is not.
+sh_test(
+    name = "codegen_up_to_date_test",
+    size = "small",
+    srcs = ["check_generated.sh"],
+    args = [
+        "$(rootpath :codegen)",
+        "$(rootpath //:model.json)",
+        "go=$(rootpath //golang/generated:main.go)",
+        "rust=$(rootpath //rust:src/bin/generated.rs)",
+        "python=$(rootpath //python:generated.py)",
+        "js=$(rootpath //javascript:src/generated.js)",
+        "solidity=$(rootpath //solidity:generated.sol)",
+    ],
+    data = [
+        ":codegen",
+        "//:model.json",
+        "//golang/generated:main.go",
+        "//javascript:src/generated.js",
+        "//python:generated.py",
+        "//rust:src/bin/generated.rs",
+        "//solidity:generated.sol",
+    ],
+)
