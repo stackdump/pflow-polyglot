@@ -144,12 +144,19 @@ function execute_transition(cm::CoffeeMachine, transition::Action)
     return true
 end
 
-# Fires the first enabled transition in declaration order until none is enabled.
+# The scheduler's candidate order: every transition, sorted by name. This is
+# what implements the canonical scheduling policy (FORMS.md) — fire the enabled
+# transition whose name is lexicographically least. `instances(Action)` gives
+# declaration order, which is one of only 90 orders out of 720 that produce
+# parity/trace.golden.
+const SCHEDULE = sort(collect(instances(Action)), by=string)
+
+# Fires the enabled transition that sorts first, until none is enabled.
 function execute_process(cm::CoffeeMachine)
     step = 0
     while true
         any_executed = false
-        for transition in instances(Action)
+        for transition in SCHEDULE
             if execute_transition(cm, transition)
                 any_executed = true
                 step += 1

@@ -5,6 +5,10 @@
 // This mirrors solidity/contract.sol, where enablement is enforced by `require`
 // in a modifier and the event log is the trace.
 //
+// The driver calls the transitions in the order the canonical scheduling
+// policy yields; the methods themselves accept any order and refuse what is
+// not enabled.
+//
 // See FORMS.md; output must match parity/trace.golden.
 
 // Thrown when a transition is called in a marking that does not enable it. The

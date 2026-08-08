@@ -43,6 +43,18 @@ sorted lexicographically. Sorting is not cosmetic: it is the only reason a Go
 The implementations are independent rewrites, so an identical trace is a real
 claim about the model rather than a shared-code tautology.
 
+**It is one trace of twenty.** This net has real concurrency — at the opening
+marking, `BoilWater`, `GrindBeans` and `Send` are all enabled, and 9 of its 16
+reachable markings offer a choice. Thirty-nine programs agree on these six lines
+because they all implement one declared rule: *fire the enabled transition whose
+name is lexicographically least.* That rule is normative and lives in
+[FORMS.md](FORMS.md#canonical-scheduling-policy); the golden is what enforces it.
+
+What the rule does not decide is the outcome. All 20 maximal firing sequences
+end in `{Payment}` — the net is confluent, which the [proof](FORMS.md#proof)
+form checks exhaustively. The scheduling policy chooses which trace gets
+printed, not where the machine ends up.
+
 ## The five forms
 
 The interesting variation is not "the same program in ten syntaxes" — it is
@@ -50,11 +62,15 @@ The interesting variation is not "the same program in ten syntaxes" — it is
 
 | Form | The net is… | Firing order comes from… |
 |------|-------------|--------------------------|
-| **interpreter** | runtime data (`arrows`, `guards`) | a scheduler searching for an enabled transition |
-| **lambda** | pure `State → State` functions | a fixed composition order chosen by the author |
-| **generated** | a build-time input (`model.json`) | a generated scheduler |
-| **contract** | a public API surface | the *caller* |
-| **proof** | a claim about *every* reachable marking | the interpreter's search order, run only after the claim is checked |
+| **interpreter** | runtime data (`arrows`, `guards`) | a scheduler searching sorted candidates |
+| **lambda** | pure `State → State` functions | the policy's sequence, precomputed into a fixed composition |
+| **generated** | a build-time input (`model.json`) | a generated scheduler, same sorted search |
+| **contract** | a public API surface | the *caller* — who must supply the policy's sequence |
+| **proof** | a claim about *every* reachable marking | the same policy, run only after the claim is checked |
+
+All five cite one rule, the [canonical scheduling
+policy](FORMS.md#canonical-scheduling-policy). They differ in *where* the firing
+order is decided, not in *what* it is.
 
 [FORMS.md](FORMS.md) specifies each one precisely, including why all five are
 held to a single golden trace rather than one golden per form.
@@ -112,9 +128,28 @@ make parity-native  # ruby, julia, haskell, bash, lean against the same golden
 **`make parity`** builds Go, Rust, Python and JavaScript under hermetic
 toolchains (Go SDK 1.26.0, Rust 1.86.0, Node 22.14.0, CPython 3.12), runs all
 twenty programs, and diffs each one's stdout against the golden. If any drifts,
-the build fails and the diff names it. It also runs
-`//tools/codegen:codegen_up_to_date_test`, which regenerates every generated
-file and fails if the checked-in output has gone stale.
+the build fails and the diff names it. It also runs three artifact gates in
+`//tools/codegen`:
+
+| Test | Fails when |
+|------|-----------|
+| `codegen_up_to_date_test` | a checked-in generated file has gone stale |
+| `codegen_permutation_test` | regenerating from a reordered `model.json` changes the output — i.e. the generator leaked JSON key order into the code |
+| `reachability_test` | `parity/reachability.golden` is stale, is not permutation-invariant, or disagrees with `parity/trace.golden` |
+
+## The second golden
+
+[`parity/reachability.golden`](parity/reachability.golden) is the net's full
+reachable state space — 16 markings, 26 edges, one terminal marking — with the
+transitions enabled in each and where they lead.
+
+The trace golden pins one path; this pins the machine. A single trace is equally
+consistent with a net that never offers a choice, so by itself it cannot tell
+"these thirty-nine programs agree about this machine" apart from "they agree
+about one path through a machine none of them has explored". The proof forms in
+six languages each compute this space privately and throw it away; writing it
+down once means they can be checked against each other instead of each being
+trusted on its own.
 
 Pins match the ecosystem-wide line (rules_go 0.61.1 / gazelle 0.51.3 / Go SDK
 1.26.0) so compiled actions share cache keys with the other Bazel repos in the
@@ -153,11 +188,8 @@ one template plus one line in the `langs` map.
 Output is deterministic — places, transitions and arc lists are all sorted by
 name — which is what makes the drift test possible.
 
-One consequence worth knowing: generated code schedules transitions in **sorted**
-order (`BoilWater, BrewCoffee, Credit, GrindBeans, PourCoffee, Send`), while the
-interpreter form schedules in **declaration** order. Both produce the golden
-trace, because at every step of this net exactly one transition is enabled. That
-is a property of this model, not a guarantee — the golden is what protects you.
+Sorting is also what makes the generated scheduler an implementation of the
+canonical scheduling policy rather than a coincidence — see below.
 
 ## Per-language notes
 

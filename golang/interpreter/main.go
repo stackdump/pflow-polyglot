@@ -150,11 +150,24 @@ func (cm *CoffeeMachine) ExecuteTransition(transition Action) bool {
 	return true
 }
 
+// schedule is the scheduler's candidate order: every transition, sorted by
+// name. The canonical scheduling policy (FORMS.md) is "fire the enabled
+// transition whose name is lexicographically least", and sorting here is what
+// implements it. Do not replace this with a hand-written list — declaration
+// order is a different order, and only 90 of the 720 possible orders produce
+// parity/trace.golden.
+func schedule() []Action {
+	all := []Action{BoilWater, GrindBeans, BrewCoffee, PourCoffee, Send, Credit}
+	sort.Slice(all, func(i, j int) bool { return all[i] < all[j] })
+	return all
+}
+
 func (cm *CoffeeMachine) ExecuteProcess() {
 	step := 0
+	candidates := schedule()
 	for {
 		anyExecuted := false
-		for _, transition := range []Action{BoilWater, GrindBeans, BrewCoffee, PourCoffee, Send, Credit} {
+		for _, transition := range candidates {
 			if cm.ExecuteTransition(transition) {
 				anyExecuted = true
 				step++

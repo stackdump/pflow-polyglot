@@ -171,9 +171,17 @@ impl StateMachine for CoffeeMachine {
 
     fn execute_process(&mut self) {
         let mut i = 0;
+        // The scheduler's candidate order: every transition, sorted by name.
+        // The canonical scheduling policy (FORMS.md) is "fire the enabled
+        // transition whose name is lexicographically least", and this sort is
+        // what implements it. `Action::iter()` yields declaration order, which
+        // is a different order — one of only 90 out of 720 that happen to
+        // produce parity/trace.golden.
+        let mut candidates: Vec<Action> = Action::iter().collect();
+        candidates.sort_by_key(|a| format!("{:?}", a));
         loop {
             let mut any_executed = false;
-            for transition in Action::iter() {
+            for transition in candidates.iter().cloned() {
                 if self.execute_transition(transition.clone()) {
                     any_executed = true;
                     i += 1;

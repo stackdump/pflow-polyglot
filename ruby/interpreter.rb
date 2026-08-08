@@ -27,6 +27,13 @@ class CoffeeMachine
     Credit: :Credit
   }
 
+  # The scheduler's candidate order: every transition, sorted by name. This is
+  # what implements the canonical scheduling policy (FORMS.md) — fire the
+  # enabled transition whose name is lexicographically least. Action.values
+  # gives declaration order, which is one of only 90 orders out of 720 that
+  # produce parity/trace.golden.
+  SCHEDULE = Action.values.sort_by(&:to_s).freeze
+
   INITIAL_STATE = [
     State[:Water],
     State[:CoffeeBeans],
@@ -108,7 +115,7 @@ class CoffeeMachine
     step = 0
     loop do
       any_executed = false
-      Action.values.each do |transition|
+      SCHEDULE.each do |transition|
         if execute_transition(transition)
           any_executed = true
           step += 1

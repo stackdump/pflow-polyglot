@@ -9,11 +9,14 @@ recur across languages, and each says something different about the model:
 
 | Form | The net is… | Firing order comes from… | Guards live in… |
 |------|-------------|--------------------------|-----------------|
-| **interpreter** | runtime data (`arrows`, `guards`) | a scheduler searching for an enabled transition | the `guards` list, checked generically |
-| **lambda** | a set of pure `State → State` functions | a fixed composition order chosen by the author | each transition's own precondition |
-| **generated** | a build-time input (`model.json`) | a generated scheduler, transitions in sorted order | unrolled into the generated preconditions |
-| **contract** | a public API surface | the *caller* | the entry point, which refuses to fire |
-| **proof** | a claim about *every* reachable marking | the interpreter's search order, run only after the claim is checked | the enablement relation the model-check explores |
+| **interpreter** | runtime data (`arrows`, `guards`) | a scheduler applying the [canonical scheduling policy](#canonical-scheduling-policy) | the `guards` list, checked generically |
+| **lambda** | a set of pure `State → State` functions | a fixed composition order: the sequence the policy yields, precomputed | each transition's own precondition |
+| **generated** | a build-time input (`model.json`) | a generated scheduler applying the same policy | unrolled into the generated preconditions |
+| **contract** | a public API surface | the *caller*, who must supply the policy's sequence to match the golden | the entry point, which refuses to fire |
+| **proof** | a claim about *every* reachable marking | the same policy, run only after the claim is checked | the enablement relation the model-check explores |
+
+Every row cites one rule. That is deliberate: the five forms differ in *where*
+the firing order is decided, not in *what* it is.
 
 The forms are a matrix against languages; see the coverage table in
 [README.md](README.md#the-form--language-matrix).
@@ -38,6 +41,33 @@ and reached a different final marking. Its schedule is now the canonical firing
 order and `pourCoffee` carries the guard. The form is still "fixed schedule, no
 search" — it is just a *correct* fixed schedule.
 
+## The two goldens
+
+`parity/trace.golden` pins one path. `parity/reachability.golden` pins the
+machine that path runs through: every reachable marking, the transitions enabled
+in each with their successor markings, and the set of terminal markings — 16
+markings, 26 edges, one terminal.
+
+The second exists because the first cannot express concurrency. A single trace
+is equally consistent with a net that never offers a choice, so on its own it
+cannot distinguish *the implementations agree about this machine* from *the
+implementations agree about one path through a machine none of them has
+explored*.
+
+It also gives the [proof](#proof) forms something to be checked against. Six
+languages compute this state space at startup, assert 1-safety and the unique
+`{Payment}` deadlock, and then discard it. Six model-checkers that never compare
+notes are six programs trusted on their own say-so; emitting the space once, as
+a shared artifact, is what makes them checkable against each other rather than
+individually plausible.
+
+Both are generated from `model.json` and gated together by
+`//tools/codegen:reachability_test`, which checks three things: the space is not
+stale, it does not change when `model.json`'s keys are reordered, and applying
+the [canonical scheduling policy](#canonical-scheduling-policy) to it reproduces
+`trace.golden` exactly. That last check is what makes them a pair — neither
+golden can move without the other noticing.
+
 ## Canonical semantics
 
 Every form, in every language, must implement exactly this. Where a language's
@@ -55,6 +85,44 @@ is *not* enabled (this is what `capacity: 1` in `model.json` means).
 **Firing.** Remove all input places from `M`, then add all output places.
 Enablement is computed against the pre-marking; a transition never observes its
 own partial effect.
+
+### Canonical scheduling policy
+
+> **At each step, fire the enabled transition whose name is lexicographically
+> least by ASCII. Stop when no transition is enabled.**
+
+This is normative, and it is the *only* reason the thirty-nine programs can
+share one golden trace. It is not a description of what they happen to do.
+
+The rule is needed because **this net has genuine concurrency**. It is not the
+case that exactly one transition is enabled at each step. On the golden path the
+enabled sets are:
+
+| Step | Marking | Enabled |
+|------|---------|---------|
+| 1 | `Water, CoffeeBeans, Filter, Pending, Cup` | **BoilWater, GrindBeans, Send** |
+| 2 | `BoiledWater, CoffeeBeans, Cup, Filter, Pending` | **GrindBeans, Send** |
+| 3 | `BoiledWater, Cup, Filter, GroundCoffee, Pending` | **BrewCoffee, Send** |
+| 4 | `CoffeeInPot, Cup, Pending` | Send |
+| 5 | `CoffeeInPot, Cup, Sent` | Credit |
+| 6 | `CoffeeInPot, Cup, Payment` | PourCoffee |
+
+Three of the six steps are choices. Over the whole reachable space, 9 of the 16
+markings enable more than one transition, and the net admits **20 distinct
+maximal firing sequences**. `parity/trace.golden` is one of those twenty — the
+one this policy selects — not the only trace the net can produce.
+
+A scheduler that instead fires "the first enabled transition in declaration
+order" is only correct by accident: of the 720 possible static priority orders,
+**90 reproduce the golden and 630 do not**. Any implementation that walks a
+transition list must therefore sort it by name explicitly, rather than lean on
+enum order, map order, or the order arcs happen to appear in `model.json`.
+
+What the policy does *not* decide is where the net ends up. Every one of the 20
+sequences terminates in the same marking `{Payment}`, because the net has no
+conflict — no two transitions ever compete for a token. The [proof](#proof) form
+checks exactly that, which is what makes the choice of policy a matter of
+presentation rather than of outcome.
 
 **Guards.** One guard: `PourCoffee` requires `Payment` to be present, and does
 not consume it. In `model.json` this is the arc
@@ -97,16 +165,21 @@ guards  : [(from: Node, to: Node)]
 
 `prepare_transition(M, t) -> (enabled, toRemove, toAdd)` is pure and does the
 whole enablement check; `execute_transition` applies it; `execute_process`
-loops, firing the **first enabled transition in declaration order** until none
-is enabled.
+loops, applying the [canonical scheduling policy](#canonical-scheduling-policy)
+until nothing is enabled.
 
-Declaration order is load-bearing and easy to break by accident — reordering an
-enum silently changes the trace. It is also, for this model, not actually
-load-bearing: the generated form schedules in sorted order
-(`BoilWater, BrewCoffee, Credit, GrindBeans, PourCoffee, Send`) and produces the
-same trace anyway, because at every step exactly one transition is enabled.
-That is a property of this net, not a guarantee. The golden is what protects
-you.
+The candidate list must be **sorted by transition name at the point of
+scheduling** — `sort`, `sort_by_key`, `sortOn show`, `LC_ALL=C sort`, whatever
+the language spells it. Sorting is not a tidiness preference here: enum
+declaration order, hash-map order and `model.json`'s key order are all
+different orders, and only one of them yields the golden. Sorting explicitly is
+what makes the form's output a consequence of the policy rather than of how
+someone happened to type the enum.
+
+Every interpreter implementation in this repo previously walked its enum in
+declaration order (`BoilWater, GrindBeans, BrewCoffee, PourCoffee, Send,
+Credit`), which is one of the 90 lucky orders. The trace was right; the reason
+was not.
 
 ### lambda
 
@@ -124,6 +197,19 @@ control flow. A fixed schedule composes them:
 BoilWater, GrindBeans, BrewCoffee, Send, Credit, PourCoffee
 ```
 
+That sequence is not an independent authorial choice, and it is not free. It is
+the [canonical scheduling policy](#canonical-scheduling-policy) *evaluated ahead
+of time*: it is precisely the firing sequence the policy selects, with the
+search removed because the answer is already known. Written any other way the
+form would still run — 20 sequences are legal — but it would no longer match the
+golden. If the policy ever changes, this list is the first thing that has to
+change with it.
+
+Note that the composition order is **not** the sorted order the interpreter
+searches in; sorting picks the *candidate to consider*, while this list records
+the *transitions actually fired*. The two coincide only at steps where one
+transition is enabled.
+
 This form cannot answer "what is enabled now?" — it can only be run. That is
 the point of contrasting it with the interpreter.
 
@@ -138,9 +224,19 @@ Generated files carry a `Code generated by tools/codegen; DO NOT EDIT.` header.
 `//tools/codegen:codegen_up_to_date_test` re-runs the generator and fails if the
 checked-in output has drifted, so the model and the code cannot disagree.
 
-Transitions are emitted in sorted name order because Go's `text/template`
-iterates maps in sorted key order — deterministic, but not the same as the
-interpreter's declaration order. See the note above about why both work here.
+Transitions are emitted in sorted name order, which makes the generated
+scheduler an implementation of the
+[canonical scheduling policy](#canonical-scheduling-policy) by construction: the
+straight-line conditionals are tested in the same order the policy would
+consider them.
+
+`tools/codegen` sorts every list it emits — places, initial marking, and each
+transition's inputs, outputs, guards and blockers — so the generated sources are
+invariant under permutation of `model.json`'s keys. That is not incidental
+tidiness either; it is what
+[`//tools/codegen:codegen_permutation_test`](tools/codegen/) asserts, by
+regenerating from reordered copies of the model and requiring byte-identical
+output.
 
 ### contract
 
@@ -152,9 +248,17 @@ pourCoffee() -> error   // "PourCoffee not enabled"
 ```
 
 The caller sequences them. The driver in each language calls the six
-transitions in canonical order and prints the trace as they succeed; the
-methods themselves would equally accept any other order and reject what is not
-enabled.
+transitions in the order the
+[canonical scheduling policy](#canonical-scheduling-policy) yields — the same
+precomputed sequence the lambda form composes — and prints the trace as they
+succeed. The methods themselves would equally accept any other order and reject
+what is not enabled.
+
+The policy is therefore a constraint on the *driver*, not on the API. That is
+the honest reading of "firing order comes from the caller": the caller is free,
+but a caller that wants the golden trace has exactly one sequence available to
+it. A driver that called `send()` first would fire a legal sequence and print a
+legal trace — just not this one.
 
 This is the form Solidity forces on you — [`solidity/contract.sol`](solidity/contract.sol)
 enforces enablement with `require` in modifiers and emits one event per firing,
@@ -179,8 +283,14 @@ and verifies two claims:
    deadlock, and it is exactly `{Payment}`. The golden trace's final marking is
    not one schedule's artifact; it is the only place the net can stop.
 
-Only after both checks pass does the form run the interpreter's scheduler and
-print the canonical trace. A violation aborts with a nonzero exit and the
+Claim 2 is what makes the [canonical scheduling
+policy](#canonical-scheduling-policy) a presentational choice rather than a
+semantic one. The policy picks which of the 20 maximal sequences gets printed;
+confluence guarantees that all 20 agree about where the net ends up. Without
+claim 2, choosing a scheduling rule would be choosing an outcome.
+
+Only after both checks pass does the form run the scheduler under the same
+policy and print the canonical trace. A violation aborts with a nonzero exit and the
 offending marking on stderr — which fails the parity gate, since a program that
 dies before printing six lines cannot match the golden.
 

@@ -46,7 +46,9 @@ struct Transition {
     guards: &'static [&'static str],
 }
 
-/// Scheduler search order — the interpreter form's declaration order.
+/// The net. `schedule()` sorts these by name before the trace loop walks them,
+/// so the order written here is not load-bearing — but do not drop the sort on
+/// that basis: only 90 of the 720 possible orders produce parity/trace.golden.
 const TRANSITIONS: [Transition; 6] = [
     Transition {
         name: "BoilWater",
@@ -161,13 +163,23 @@ fn verify() -> Result<(), String> {
     Ok(())
 }
 
+/// The scheduler's candidate order: every transition, sorted by name. This is
+/// what implements the canonical scheduling policy (FORMS.md) — fire the
+/// enabled transition whose name is lexicographically least.
+fn schedule() -> Vec<&'static Transition> {
+    let mut all: Vec<&'static Transition> = TRANSITIONS.iter().collect();
+    all.sort_by_key(|t| t.name);
+    all
+}
+
 /// The interpreter form's scheduler, running on a net the model-check has
 /// already verified.
 fn execute_process() {
     let mut m = initial_marking();
     let mut step = 0;
+    let candidates = schedule();
     loop {
-        let Some(t) = TRANSITIONS.iter().find(|t| enabled(&m, t)) else {
+        let Some(t) = candidates.iter().copied().find(|t| enabled(&m, t)) else {
             return;
         };
         m = fire(&m, t);

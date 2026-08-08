@@ -9,6 +9,10 @@
 -- `requireEnabled` returns before any `CoffeeMachine` is constructed, so there
 -- is no state to roll back.
 --
+-- The driver calls the transitions in the order the canonical scheduling
+-- policy yields; the methods themselves accept any order and refuse what is
+-- not enabled.
+--
 -- See FORMS.md; output must match parity/trace.golden.
 
 inductive State where

@@ -22,6 +22,13 @@ class CoffeeMachine {
             Credit: 'Credit'
         };
 
+        // The scheduler's candidate order: every transition, sorted by name.
+        // This is what implements the canonical scheduling policy (FORMS.md) —
+        // fire the enabled transition whose name is lexicographically least.
+        // Object.values() gives declaration order, which is one of only 90
+        // orders out of 720 that produce parity/trace.golden.
+        this.schedule = Object.values(this.Action).sort();
+
         this.state = new Set([
             this.State.Water,
             this.State.CoffeeBeans,
@@ -114,7 +121,7 @@ class CoffeeMachine {
         let step = 0;
         while (true) {
             let anyExecuted = false;
-            for (const transition of Object.values(this.Action)) {
+            for (const transition of this.schedule) {
                 if (this.executeTransition(transition)) {
                     anyExecuted = true;
                     step++;

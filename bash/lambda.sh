@@ -7,6 +7,10 @@
 # applies all of its effects and returns 0, or touches nothing and returns 1.
 # Every precondition is checked before any mutation.
 #
+# The fixed schedule is not an independent authorial choice: it is the firing
+# sequence the canonical scheduling policy yields, precomputed with the search
+# removed.
+#
 # See FORMS.md; output must match parity/trace.golden.
 set -uo pipefail
 

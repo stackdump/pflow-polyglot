@@ -19,8 +19,8 @@ help:
 	@echo "  make parity-native    ruby/julia/haskell/bash against the golden trace"
 	@echo ""
 	@echo "Code generation:"
-	@echo "  make generate         regenerate <lang>/generated from model.json"
-	@echo "  make check-generated  fail if any generated file is stale"
+	@echo "  make generate         regenerate <lang>/generated + parity/reachability.golden"
+	@echo "  make check-generated  fail if any generated artifact is stale"
 
 all: run-go run-rust run-python run-js run-bash run-ruby run-julia run-haskell run-lean
 
@@ -109,8 +109,9 @@ bazel-clean:
 
 # --- code generation --------------------------------------------------------
 #
-# model.json is the source of truth for the generated form. Regenerate after
-# changing it; check-generated is what fails the build when you forget.
+# model.json is the source of truth for the generated form and for
+# parity/reachability.golden, the net's full reachable state space. Regenerate
+# after changing it; check-generated is what fails the build when you forget.
 
 generate:
 	go run ./tools/codegen -lang go       -out golang/generated/main.go   model.json
@@ -118,6 +119,7 @@ generate:
 	go run ./tools/codegen -lang python   -out python/generated.py        model.json
 	go run ./tools/codegen -lang js       -out javascript/src/generated.js model.json
 	go run ./tools/codegen -lang solidity -out solidity/generated.sol     model.json
+	go run ./tools/codegen/reachability   -out parity/reachability.golden model.json
 
 check-generated:
-	bazel test //tools/codegen:codegen_up_to_date_test
+	bazel test //tools/codegen:all

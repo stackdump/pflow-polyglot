@@ -76,7 +76,11 @@ type Transition struct {
 	Guards  []string
 }
 
-// Scheduler search order — the interpreter form's declaration order.
+// The net. Sorted by name in init below, which is what makes the trace loop
+// implement the canonical scheduling policy (FORMS.md): fire the enabled
+// transition whose name is lexicographically least. The order written here is
+// therefore not load-bearing — but do not assume that and drop the sort, since
+// only 90 of the 720 possible orders produce parity/trace.golden.
 var transitions = []Transition{
 	{"BoilWater", []string{"Water"}, []string{"BoiledWater"}, nil},
 	{"GrindBeans", []string{"CoffeeBeans"}, []string{"GroundCoffee"}, nil},
@@ -84,6 +88,10 @@ var transitions = []Transition{
 	{"PourCoffee", []string{"CoffeeInPot", "Cup"}, nil, []string{"Payment"}},
 	{"Send", []string{"Pending"}, []string{"Sent"}, nil},
 	{"Credit", []string{"Sent"}, []string{"Payment"}, nil},
+}
+
+func init() {
+	sort.Slice(transitions, func(i, j int) bool { return transitions[i].Name < transitions[j].Name })
 }
 
 func initialMarking() Marking {

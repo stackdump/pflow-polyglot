@@ -24,8 +24,7 @@ PLACES = (
 INDEX = {p: i for i, p in enumerate(PLACES)}
 
 # (name, inputs, outputs, guards): inputs consumed, outputs produced, guards
-# read but not consumed. Scheduler search order — the interpreter form's
-# declaration order.
+# read but not consumed.
 TRANSITIONS = (
     ("BoilWater", ("Water",), ("BoiledWater",), ()),
     ("GrindBeans", ("CoffeeBeans",), ("GroundCoffee",), ()),
@@ -34,6 +33,13 @@ TRANSITIONS = (
     ("Send", ("Pending",), ("Sent",), ()),
     ("Credit", ("Sent",), ("Payment",), ()),
 )
+
+# The scheduler's candidate order: every transition, sorted by name. This is
+# what implements the canonical scheduling policy (FORMS.md) — fire the enabled
+# transition whose name is lexicographically least. The order the tuple is
+# written in is therefore not load-bearing, but do not drop the sort on that
+# basis: only 90 of the 720 possible orders produce parity/trace.golden.
+SCHEDULE = tuple(sorted(TRANSITIONS, key=lambda t: t[0]))
 
 INITIAL = tuple(
     1 if p in {"Water", "CoffeeBeans", "Filter", "Cup", "Pending"} else 0
@@ -100,7 +106,7 @@ def execute_process():
     marking = INITIAL
     step = 0
     while True:
-        for transition in TRANSITIONS:
+        for transition in SCHEDULE:
             if enabled(marking, transition):
                 marking = fire(marking, transition)
                 step += 1

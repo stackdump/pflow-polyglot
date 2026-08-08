@@ -26,9 +26,17 @@ for i in "${!PLACES[@]}"; do
 	INDEX[${PLACES[$i]}]=$i
 done
 
-# Scheduler search order — the interpreter form's declaration order. Inputs
+# The net. SCHEDULE below sorts these by name for the trace loop. Inputs
 # consumed, outputs produced, guards read but not consumed.
 TRANSITIONS=(BoilWater GrindBeans BrewCoffee PourCoffee Send Credit)
+
+# SCHEDULE is the scheduler's candidate order: every transition, sorted by name
+# under the C locale (FORMS.md specifies ASCII order). This is what implements
+# the canonical scheduling policy — fire the enabled transition whose name is
+# lexicographically least. The order TRANSITIONS is written in is therefore not
+# load-bearing, but do not drop the sort on that basis: only 90 of the 720
+# possible orders produce parity/trace.golden.
+mapfile -t SCHEDULE < <(printf '%s\n' "${TRANSITIONS[@]}" | LC_ALL=C sort)
 
 declare -A INPUTS=(
 	[BoilWater]="Water"
@@ -133,7 +141,7 @@ verify() {
 		done
 
 		local fired=0 transition next
-		for transition in "${TRANSITIONS[@]}"; do
+		for transition in "${SCHEDULE[@]}"; do
 			enabled "$marking" "$transition" || continue
 			fired=1
 			next=$(fire "$marking" "$transition")
@@ -164,7 +172,7 @@ execute_process() {
 	marking=$(initial_marking)
 	while true; do
 		local fired=0 transition
-		for transition in "${TRANSITIONS[@]}"; do
+		for transition in "${SCHEDULE[@]}"; do
 			enabled "$marking" "$transition" || continue
 			marking=$(fire "$marking" "$transition")
 			step=$((step + 1))

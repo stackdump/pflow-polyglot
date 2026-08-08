@@ -1,0 +1,14 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "permute_lib",
+    srcs = ["main.go"],
+    importpath = "github.com/stackdump/pflow-polyglot/tools/codegen/permute",
+    visibility = ["//visibility:private"],
+)
+
+go_binary(
+    name = "permute",
+    embed = [":permute_lib"],
+    visibility = ["//visibility:public"],
+)

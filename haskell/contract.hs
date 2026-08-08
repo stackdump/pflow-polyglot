@@ -7,6 +7,10 @@
 -- The observable behaviour is the same as solidity/contract.sol: an entry point
 -- that is not enabled changes nothing.
 --
+-- The driver calls the transitions in the order the canonical scheduling
+-- policy yields; the methods themselves accept any order and refuse what is
+-- not enabled.
+--
 -- See FORMS.md; output must match parity/trace.golden.
 module Main (main) where
 

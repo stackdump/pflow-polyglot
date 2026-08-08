@@ -2,6 +2,10 @@
 // composed in a fixed schedule. No arrows, no guards list, no enablement
 // search — the arcs survive only as control flow inside each transition.
 //
+// The fixed schedule is not an independent authorial choice: it is the firing
+// sequence the canonical scheduling policy yields, precomputed with the search
+// removed.
+//
 // See FORMS.md; output must match parity/trace.golden.
 package main
 

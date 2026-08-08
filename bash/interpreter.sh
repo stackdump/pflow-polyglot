@@ -10,6 +10,14 @@ set -uo pipefail
 
 TRANSITIONS=(BoilWater GrindBeans BrewCoffee PourCoffee Send Credit)
 
+# SCHEDULE is the scheduler's candidate order: every transition, sorted by name
+# under the C locale (FORMS.md specifies ASCII order). This is what implements
+# the canonical scheduling policy — fire the enabled transition whose name is
+# lexicographically least. The order TRANSITIONS is written in is therefore not
+# load-bearing, but do not drop the sort on that basis: only 90 of the 720
+# possible orders produce parity/trace.golden.
+mapfile -t SCHEDULE < <(printf '%s\n' "${TRANSITIONS[@]}" | LC_ALL=C sort)
+
 ARROWS=(
 	"P:Water>T:BoilWater"
 	"T:BoilWater>P:BoiledWater"
@@ -103,13 +111,13 @@ execute_transition() {
 	return 0
 }
 
-# execute_process fires the first enabled transition in declaration order until
-# none is enabled.
+# execute_process fires the enabled transition that sorts first, until none is
+# enabled.
 execute_process() {
 	local step=0 transition fired
 	while true; do
 		fired=false
-		for transition in "${TRANSITIONS[@]}"; do
+		for transition in "${SCHEDULE[@]}"; do
 			if execute_transition "$transition"; then
 				step=$((step + 1))
 				printf 'Step #%d: %s => %s\n' "$step" "$transition" "$(render)"

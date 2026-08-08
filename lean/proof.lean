@@ -62,14 +62,23 @@ structure Transition where
   outputs : List State
   guards  : List State
 
--- Scheduler search order — the interpreter form's declaration order.
+-- The net, in the scheduler's candidate order: sorted by transition name. This
+-- is what implements the canonical scheduling policy (FORMS.md) — fire the
+-- enabled transition whose name is lexicographically least.
+--
+-- Written out in sorted order rather than computed with a sort, because Lean's
+-- prelude sort APIs have moved between versions. That makes this the one place
+-- in the repo where the policy is maintained by hand rather than enforced:
+-- keep the list sorted by name. Only 90 of the 720 possible orders produce
+-- parity/trace.golden, and Lean is outside the Bazel gate, so nothing here will
+-- catch a reordering except `make parity-native` on a box with Lean installed.
 def transitions : List Transition :=
   [ ⟨"BoilWater",  [.Water], [.BoiledWater], []⟩,
-    ⟨"GrindBeans", [.CoffeeBeans], [.GroundCoffee], []⟩,
     ⟨"BrewCoffee", [.BoiledWater, .GroundCoffee, .Filter], [.CoffeeInPot], []⟩,
+    ⟨"Credit",     [.Sent], [.Payment], []⟩,
+    ⟨"GrindBeans", [.CoffeeBeans], [.GroundCoffee], []⟩,
     ⟨"PourCoffee", [.CoffeeInPot, .Cup], [], [.Payment]⟩,
-    ⟨"Send",       [.Pending], [.Sent], []⟩,
-    ⟨"Credit",     [.Sent], [.Payment], []⟩ ]
+    ⟨"Send",       [.Pending], [.Sent], []⟩ ]
 
 -- Plain P/T enablement: inputs and guards marked. Deliberately no
 -- "outputs clear" clause — that the clause is never needed is theorem 1.

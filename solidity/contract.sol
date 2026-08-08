@@ -12,6 +12,10 @@
 // The generated equivalent is solidity/generated.sol; diffing the two shows
 // what tools/codegen does and does not capture.
 //
+// The driver calls the transitions in the order the canonical scheduling
+// policy yields; the methods themselves accept any order and refuse what is
+// not enabled.
+//
 // See FORMS.md.
 pragma solidity ^0.8.18;
 

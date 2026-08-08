@@ -22,6 +22,14 @@ class Action(Enum):
     SEND = "Send"
     CREDIT = "Credit"
 
+# The scheduler's candidate order: every transition, sorted by name. This is
+# what implements the canonical scheduling policy (FORMS.md) — fire the enabled
+# transition whose name is lexicographically least. Iterating `Action` directly
+# would give declaration order, which is one of only 90 orders out of 720 that
+# produce parity/trace.golden.
+SCHEDULE = tuple(sorted(Action, key=lambda a: a.value))
+
+
 class Node:
     def __init__(self, place=None, transition=None):
         self.place = place
@@ -73,7 +81,7 @@ class CoffeeMachine:
         step = 0
         while True:
             any_executed = False
-            for transition in Action:
+            for transition in SCHEDULE:
                 if self.execute_transition(transition):
                     any_executed = True
                     step += 1

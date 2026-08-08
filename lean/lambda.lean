@@ -8,6 +8,10 @@
 -- schedule is a finite list and the driver is structural recursion on it, so
 -- termination is a fact the compiler checks rather than one we assert.
 --
+-- The fixed schedule is not an independent authorial choice: it is the firing
+-- sequence the canonical scheduling policy yields, precomputed with the search
+-- removed.
+--
 -- See FORMS.md; output must match parity/trace.golden.
 
 inductive State where

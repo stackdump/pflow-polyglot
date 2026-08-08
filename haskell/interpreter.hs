@@ -3,7 +3,7 @@
 -- parity/trace.golden.
 module Main (main) where
 
-import Data.List (intercalate, sort)
+import Data.List (intercalate, sort, sortOn)
 import Data.Set (Set)
 import qualified Data.Set as Set
 
@@ -21,8 +21,8 @@ data State
   | Cup
   deriving (Show, Eq, Ord, Enum, Bounded)
 
--- A transition in the Petri net. Declaration order is the scheduler's search
--- order.
+-- A transition in the Petri net. Declaration order is NOT the scheduler's
+-- search order; see `schedule`.
 data Action
   = BoilWater
   | GrindBeans
@@ -106,11 +106,18 @@ fire marking action
     inputs = inputsOf action
     outputs = outputsOf action
 
--- Fires the first enabled transition in declaration order until none is
--- enabled.
+-- The scheduler's candidate order: every transition, sorted by name. This is
+-- what implements the canonical scheduling policy (FORMS.md) — fire the enabled
+-- transition whose name is lexicographically least. Note `sortOn show`, not
+-- the derived Ord: deriving Ord on Action gives *declaration* order, which is
+-- one of only 90 orders out of 720 that produce parity/trace.golden.
+schedule :: [Action]
+schedule = sortOn show [minBound .. maxBound]
+
+-- Fires the enabled transition that sorts first, until none is enabled.
 executeProcess :: Int -> Set State -> IO ()
 executeProcess step marking =
-  case [(action, next) | action <- [minBound .. maxBound], Just next <- [fire marking action]] of
+  case [(action, next) | action <- schedule, Just next <- [fire marking action]] of
     [] -> return ()
     ((action, next) : _) -> do
       putStrLn $ "Step #" ++ show (step + 1) ++ ": " ++ show action ++ " => " ++ render next

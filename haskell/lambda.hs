@@ -6,6 +6,10 @@
 -- "(marking, fired)", and the purity the other languages have to arrange by
 -- copying is free.
 --
+-- The fixed schedule is not an independent authorial choice: it is the firing
+-- sequence the canonical scheduling policy yields, precomputed with the search
+-- removed.
+--
 -- See FORMS.md; output must match parity/trace.golden.
 module Main (main) where
 

@@ -54,9 +54,18 @@ def Action.name : Action → String
   | .Send       => "Send"
   | .Credit     => "Credit"
 
--- The scheduler's search order.
+-- The scheduler's candidate order: every transition, sorted by name. This is
+-- what implements the canonical scheduling policy (FORMS.md) — fire the enabled
+-- transition whose name is lexicographically least.
+--
+-- Written out in sorted order rather than computed with a sort, because Lean's
+-- prelude sort APIs have moved between versions. That makes this the one place
+-- in the repo where the policy is maintained by hand rather than enforced:
+-- keep the list sorted by name. Only 90 of the 720 possible orders produce
+-- parity/trace.golden, and Lean is outside the Bazel gate, so nothing here will
+-- catch a reordering except `make parity-native` on a box with Lean installed.
 def Action.all : List Action :=
-  [.BoilWater, .GrindBeans, .BrewCoffee, .PourCoffee, .Send, .Credit]
+  [.BoilWater, .BrewCoffee, .Credit, .GrindBeans, .PourCoffee, .Send]
 
 -- A node is either a place or a transition. This is the distinction the
 -- untyped implementations have to fake with a nullable field.
@@ -150,7 +159,7 @@ def fire (m : Marking) (a : Action) : Option Marking :=
   else if outputs.any (fun p => m.contains p) then none
   else some ((m.filter fun p => !inputs.contains p) ++ outputs)
 
--- Fires the first enabled transition in declaration order until none is
+-- Fires the enabled transition that sorts first, until none is
 -- enabled. `partial` because the termination argument is a property of this
 -- net, not of the loop.
 partial def executeProcess (step : Nat) (m : Marking) : IO Unit := do

@@ -14,6 +14,7 @@ go_library(
     ],
     importpath = "github.com/stackdump/pflow-polyglot/tools/codegen",
     visibility = ["//visibility:private"],
+    deps = ["//tools/codegen/internal/petri"],
 )
 
 go_binary(
@@ -46,5 +47,59 @@ sh_test(
         "//python:generated.py",
         "//rust:src/bin/generated.rs",
         "//solidity:generated.sol",
+    ],
+)
+
+# Regenerates from reordered copies of model.json and requires byte-identical
+# output. The generated form claims to be a function of the net, not of how the
+# model happens to be typed; JSON objects are ordered on disk, so that claim
+# needs a test rather than a convention.
+sh_test(
+    name = "codegen_permutation_test",
+    size = "small",
+    srcs = ["check_permutations.sh"],
+    args = [
+        "$(rootpath //tools/codegen/permute)",
+        "$(rootpath :codegen)",
+        "$(rootpath //:model.json)",
+        "go=$(rootpath //golang/generated:main.go)",
+        "rust=$(rootpath //rust:src/bin/generated.rs)",
+        "python=$(rootpath //python:generated.py)",
+        "js=$(rootpath //javascript:src/generated.js)",
+        "solidity=$(rootpath //solidity:generated.sol)",
+    ],
+    data = [
+        ":codegen",
+        "//:model.json",
+        "//golang/generated:main.go",
+        "//javascript:src/generated.js",
+        "//python:generated.py",
+        "//rust:src/bin/generated.rs",
+        "//solidity:generated.sol",
+        "//tools/codegen/permute",
+    ],
+)
+
+# Gates parity/reachability.golden: drift, permutation invariance, and agreement
+# with parity/trace.golden. The two goldens are a pair — the space describes the
+# machine, the trace pins one path through it — and this is what keeps them in
+# step.
+sh_test(
+    name = "reachability_test",
+    size = "small",
+    srcs = ["check_reachability.sh"],
+    args = [
+        "$(rootpath //tools/codegen/reachability)",
+        "$(rootpath //tools/codegen/permute)",
+        "$(rootpath //:model.json)",
+        "$(rootpath //parity:reachability.golden)",
+        "$(rootpath //parity:trace.golden)",
+    ],
+    data = [
+        "//:model.json",
+        "//parity:reachability.golden",
+        "//parity:trace.golden",
+        "//tools/codegen/permute",
+        "//tools/codegen/reachability",
     ],
 )

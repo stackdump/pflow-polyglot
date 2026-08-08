@@ -1,0 +1,15 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "reachability_lib",
+    srcs = ["main.go"],
+    importpath = "github.com/stackdump/pflow-polyglot/tools/codegen/reachability",
+    visibility = ["//visibility:private"],
+    deps = ["//tools/codegen/internal/petri"],
+)
+
+go_binary(
+    name = "reachability",
+    embed = [":reachability_lib"],
+    visibility = ["//visibility:public"],
+)

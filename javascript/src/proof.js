@@ -21,8 +21,7 @@ const PLACES = [
 ];
 const INDEX = new Map(PLACES.map((p, i) => [p, i]));
 
-// Inputs consumed, outputs produced, guards read but not consumed. Scheduler
-// search order — the interpreter form's declaration order.
+// Inputs consumed, outputs produced, guards read but not consumed.
 const TRANSITIONS = [
     { name: 'BoilWater', inputs: ['Water'], outputs: ['BoiledWater'], guards: [] },
     { name: 'GrindBeans', inputs: ['CoffeeBeans'], outputs: ['GroundCoffee'], guards: [] },
@@ -103,11 +102,17 @@ function verify() {
 
 // The interpreter form's scheduler, running on a net the model-check has
 // already verified.
+// The scheduler's candidate order: every transition, sorted by name. This is
+// what implements the canonical scheduling policy (FORMS.md) — fire the enabled
+// transition whose name is lexicographically least. Only 90 of the 720 possible
+// orders produce parity/trace.golden, so this sort is not decoration.
+const SCHEDULE = [...TRANSITIONS].sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
+
 function executeProcess() {
     let marking = initialMarking();
     let step = 0;
     for (;;) {
-        const t = TRANSITIONS.find((t) => enabled(marking, t));
+        const t = SCHEDULE.find((t) => enabled(marking, t));
         if (!t) {
             return;
         }
