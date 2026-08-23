@@ -1,0 +1,5 @@
+# Lean is outside the Bazel gate — there is no hermetic toolchain here, so the
+# proof form runs under `make parity-native`. The generated proof is still
+# exported so //tools/codegen:codegen_up_to_date_test and
+# codegen_permutation_test can detect model drift in its theorems.
+exports_files(["proof.lean"])

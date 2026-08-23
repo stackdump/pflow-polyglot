@@ -8,6 +8,10 @@
 // name is lexicographically least. Every arc is unrolled into straight-line
 // conditionals, so nothing walks an arrow list at runtime.
 //
+// -lang lean emits the *proof* form instead: lean/proof.lean, whose theorems
+// (1-safety, one conservation law per P-invariant of C, the unique deadlock)
+// are derived from the model and discharged by `decide`.
+//
 // Output is deterministic: places, transitions and arc lists are all sorted by
 // name, so regenerating an unchanged model produces byte-identical source.
 // //tools/codegen:codegen_up_to_date_test depends on that.
@@ -79,10 +83,11 @@ var langs = map[string]string{
 	"python":   "templates/python.tmpl",
 	"js":       "templates/js.tmpl",
 	"solidity": "templates/solidity.tmpl",
+	"lean":     "templates/lean.tmpl",
 }
 
 func main() {
-	lang := flag.String("lang", "", "target language: go, rust, python, js, solidity")
+	lang := flag.String("lang", "", "target language: go, rust, python, js, solidity, lean")
 	out := flag.String("out", "", "output file (default: stdout)")
 	flag.Parse()
 
@@ -114,8 +119,15 @@ func main() {
 		os.Exit(1)
 	}
 
+	// The proof form states theorems rather than a scheduler, so its template
+	// sees the model plus the analysis those theorems are derived from.
+	var data any = model
+	if *lang == "lean" {
+		data = model.ProofView()
+	}
+
 	var buf bytes.Buffer
-	if err := tmpl.ExecuteTemplate(&buf, "main", model); err != nil {
+	if err := tmpl.ExecuteTemplate(&buf, "main", data); err != nil {
 		fmt.Fprintln(os.Stderr, "codegen: rendering:", err)
 		os.Exit(1)
 	}

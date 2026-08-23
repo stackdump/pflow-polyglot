@@ -119,6 +119,7 @@ generate:
 	go run ./tools/codegen -lang python   -out python/generated.py        model.json
 	go run ./tools/codegen -lang js       -out javascript/src/generated.js model.json
 	go run ./tools/codegen -lang solidity -out solidity/generated.sol     model.json
+	go run ./tools/codegen -lang lean     -out lean/proof.lean            model.json
 	go run ./tools/codegen/reachability   -out parity/reachability.golden model.json
 
 check-generated:

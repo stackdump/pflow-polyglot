@@ -8,6 +8,7 @@ go_library(
     embedsrcs = [
         "templates/go.tmpl",
         "templates/js.tmpl",
+        "templates/lean.tmpl",
         "templates/python.tmpl",
         "templates/rust.tmpl",
         "templates/solidity.tmpl",
@@ -25,7 +26,9 @@ go_binary(
 
 # Regenerates every target from model.json and fails if the checked-in output
 # has drifted. Solidity is included even though it is outside the parity gate —
-# drift is detectable there even when the trace is not.
+# drift is detectable there even when the trace is not. Lean's proof form is
+# included for the same reason: Bazel cannot run `lean`, but it can tell that
+# the theorems checked in are not the ones model.json implies.
 sh_test(
     name = "codegen_up_to_date_test",
     size = "small",
@@ -38,12 +41,14 @@ sh_test(
         "python=$(rootpath //python:generated.py)",
         "js=$(rootpath //javascript:src/generated.js)",
         "solidity=$(rootpath //solidity:generated.sol)",
+        "lean=$(rootpath //lean:proof.lean)",
     ],
     data = [
         ":codegen",
         "//:model.json",
         "//golang/generated:main.go",
         "//javascript:src/generated.js",
+        "//lean:proof.lean",
         "//python:generated.py",
         "//rust:src/bin/generated.rs",
         "//solidity:generated.sol",
@@ -67,12 +72,14 @@ sh_test(
         "python=$(rootpath //python:generated.py)",
         "js=$(rootpath //javascript:src/generated.js)",
         "solidity=$(rootpath //solidity:generated.sol)",
+        "lean=$(rootpath //lean:proof.lean)",
     ],
     data = [
         ":codegen",
         "//:model.json",
         "//golang/generated:main.go",
         "//javascript:src/generated.js",
+        "//lean:proof.lean",
         "//python:generated.py",
         "//rust:src/bin/generated.rs",
         "//solidity:generated.sol",

@@ -299,9 +299,39 @@ check 1 immediately, so the explored space is a subset of `{0,1}^10` and BFS
 runs out of frontier after at most 1024 markings. This net reaches 16.
 
 What varies by language is *when* the check runs. Go, Rust, Python, JavaScript
-and Bash model-check at startup, every run. Lean states both claims as
+and Bash model-check at startup, every run. Lean states the claims as
 `theorem`s discharged by `decide`: the kernel evaluates the BFS during
 elaboration, and an unsafe model is a *compile error* — `main` cannot exist
 unless the claims hold. That is the whole pitch of the form: the same
 executable specification, but the trace is printed by a program that has
 already been refused permission to be wrong.
+
+**The Lean proof form is generated.** `lean/proof.lean` is emitted by
+`tools/codegen -lang lean` from `model.json` (`make generate`), carries the
+`DO NOT EDIT` header, and is gated by `//tools/codegen:codegen_up_to_date_test`
+and `codegen_permutation_test` like the other generated sources — Bazel cannot
+run `lean`, but it can tell that the theorems checked in are not the ones the
+model implies. `make run-lean` / `make parity-native` are what actually check
+the proofs. The generator derives the theorems from the model rather than
+copying them:
+
+| Theorem | Stated when | What codegen computes |
+|---|---|---|
+| `reachable_closed` | always | nothing — the BFS fuel is `2^n` for `n` places |
+| `reachable_one_safe` | every place has `capacity: 1` (the loader rejects anything else) | nothing — claim 1 above |
+| `invariant<k>_conserved`, one per basis vector | always | a basis of the left nullspace of the incidence matrix `C` (places × transitions): every integer `y` with `yᵀC = 0`, found by row-reducing `Cᵀ` over ℚ and scaling to primitive integer vectors. The theorem says `Σ y[p]·M[p]` equals its initial value on every reachable marking. Read and inhibitor arcs have no entry in `C` |
+| `unique_deadlock` | the net is conflict-free (no two transitions consume one place) and codegen's own BFS finds exactly one terminal marking | the terminal marking, which the theorem names — claim 2 above |
+
+The coffee machine has a 4-dimensional invariant space. Three of the four
+vectors carry a `-1` on `Cup`: `PourCoffee` consumes `CoffeeInPot` and `Cup`
+and produces nothing, so the only conserved quantities through it are
+differences. The fourth, `Payment + Pending + Sent = 1`, is the one
+semi-positive invariant — the token that travels the payment chain is never
+created or destroyed. Weights are `Int` for exactly that reason.
+
+Lean does not trust the Go linear algebra: it re-checks each invariant's
+*consequence* on the enumerated state space. A generator that emitted a wrong
+weight vector, a wrong terminal marking, or a BFS that did not close would
+produce a file that fails to elaborate. The hand-written theorems the file
+replaced — `reachable_one_safe`, `unique_deadlock`, `reachable_closed` — are
+all regenerated with the same statements.

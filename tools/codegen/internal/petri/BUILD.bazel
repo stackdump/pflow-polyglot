@@ -2,7 +2,10 @@ load("@io_bazel_rules_go//go:def.bzl", "go_library")
 
 go_library(
     name = "petri",
-    srcs = ["petri.go"],
+    srcs = [
+        "analysis.go",
+        "petri.go",
+    ],
     importpath = "github.com/stackdump/pflow-polyglot/tools/codegen/internal/petri",
     visibility = ["//tools/codegen:__subpackages__"],
 )
