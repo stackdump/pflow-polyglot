@@ -13,7 +13,7 @@ the parity gate. See README.md.
 
 Pins match the ecosystem-wide line (rules_go 0.61.1 / gazelle 0.51.3 / Go SDK
 1.26.0) so compiled actions share remote-cache keys with go-pflow, bitwrap-io,
-beats-bitwrap-io and petri-pilot.
+beats-bitwrap-io and sim-pflow-xyz.
 """
 
 module(
