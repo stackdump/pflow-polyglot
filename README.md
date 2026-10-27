@@ -230,7 +230,6 @@ cd javascript && npm install && npm test        # mocha; not in the Bazel graph
 
 ## Contributing
 
-New languages and new forms are both welcome. The bar is the same either way:
-it must emit the canonical trace, and it must be wired into one of the two
-parity gates. Start from [FORMS.md](FORMS.md) — it is the spec, not a
-description.
+We don't merge outside code, so pull requests won't be merged as-is.
+Feature requests and bug reports are welcome: please open an
+[issue](https://github.com/stackdump/pflow-polyglot/issues).
